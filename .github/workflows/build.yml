@@ -1,9 +1,5 @@
 name: Desktop ISO
-on:
-  push:
-    branches:
-    - master
-  pull_request:
+on: workflow_dispatch
 
 concurrency:
   group: ${{ github.ref }}
