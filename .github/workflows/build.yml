@@ -22,7 +22,7 @@ jobs:
 
       - name: Clone CachyOS-Live-ISO
         id: clone
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -54,7 +54,7 @@ jobs:
 
       - name: Upload ISO to artifacts
         id: upload
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: cachyos-desktop-linux-${{ steps.date.outputs.builddate }}
           path: out/desktop/*
