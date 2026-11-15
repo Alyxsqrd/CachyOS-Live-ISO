@@ -9,12 +9,17 @@ jobs:
   build:
     runs-on: ubuntu-latest
     container:
-      image: archlinux:base-devel
+      image: cachyos/cachyos-v4:latest
       options: --privileged
     name: Build
     outputs:
       builddate: ${{ steps.date.outputs.builddate }}
     steps:
+      - name: Install dependencies
+        id: dependencies
+        run: |
+          pacman -Syu --noconfirm archiso mkinitcpio-archiso squashfs-tools grub sudo git
+
       - name: Get build date
         id: date
         run: |
@@ -25,20 +30,6 @@ jobs:
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
-
-      - name: Add CachyOS keyring
-        id: keyring
-        run: |
-          pacman-key --init
-          pacman-key --recv-keys F3B607488DB35A47 --keyserver keyserver.ubuntu.com
-          pacman-key --lsign-key F3B607488DB35A47
-
-          sed -i '/^\[core\]$/i[cachyos]\nServer = https://mirror.cachyos.org/repo/$arch/$repo\n' /etc/pacman.conf
-
-      - name: Install dependencies
-        id: dependencies
-        run: |
-          sudo pacman -Syu --noconfirm archiso cachyos-keyring mkinitcpio-archiso squashfs-tools grub
 
       - name: Create build user
         id: user-archiso
@@ -52,9 +43,22 @@ jobs:
         run: |
           sudo -H -E -u builder ./buildiso.sh -p desktop
 
+      - name: Check Calamares libraries
+        id: check
+        run: |
+          root=$(find work -type d -path '*/airootfs' | head -1)
+          if [ -z "$root" ]; then
+            echo "airootfs not found, skipping check"; exit 0
+          fi
+          if chroot "$root" ldd /usr/bin/calamares | grep 'not found'; then
+            echo "Calamares is linked against missing libraries"; exit 1
+          fi
+
       - name: Upload ISO to artifacts
         id: upload
         uses: actions/upload-artifact@v7
         with:
           name: cachyos-desktop-linux-${{ steps.date.outputs.builddate }}
           path: out/desktop/*
+          compression-level: 0
+          retention-days: 1
